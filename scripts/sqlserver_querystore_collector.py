@@ -263,6 +263,9 @@ class SQLServerQueryStoreCollector:
               -- 过滤CDC作业 (Change Data Capture)
               AND qsqt.query_sql_text NOT LIKE '%sp_cdc_%'
               AND qsqt.query_sql_text NOT LIKE '%sp_MScdc_%'
+              AND qsqt.query_sql_text NOT LIKE '%cdc.lsn_time_mapping%'
+              AND qsqt.query_sql_text NOT LIKE '%cdc.change_tables%'
+              AND qsqt.query_sql_text NOT LIKE '%cdc.captured_columns%'
               -- 过滤复制作业
               AND qsqt.query_sql_text NOT LIKE '%sp_replcmds%'
               AND qsqt.query_sql_text NOT LIKE '%sp_MSrepl_%'
@@ -345,7 +348,10 @@ class SQLServerQueryStoreCollector:
               AND r.total_elapsed_time >= ?
               AND t.text IS NOT NULL
               -- 过滤CDC作业 (Change Data Capture)
-              AND NOT (t.text LIKE '%sp_cdc_%' OR t.text LIKE '%sp_MScdc_%')
+              AND NOT (t.text LIKE '%sp_cdc_%' OR t.text LIKE '%sp_MScdc_%'
+                       OR t.text LIKE '%cdc.lsn_time_mapping%'
+                       OR t.text LIKE '%cdc.change_tables%'
+                       OR t.text LIKE '%cdc.captured_columns%')
               -- 过滤复制作业
               AND NOT (t.text LIKE '%sp_replcmds%' OR t.text LIKE '%sp_MSrepl_%')
               -- 过滤系统健康检查 (AlwaysOn/FCI健康监控)

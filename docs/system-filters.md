@@ -12,18 +12,29 @@
 
 **特征：**
 - 存储过程：`sp_cdc_*`, `sp_MScdc_*`
+- 系统表：`cdc.lsn_time_mapping`, `cdc.change_tables`, `cdc.captured_columns`
 - 用途：捕获数据库表的变更记录
 - 运行模式：持续运行的后台作业
 
 **为什么过滤：**
 - CDC作业永久运行，会持续出现在慢SQL列表中
+- 查询CDC系统表是内部机制，不是业务SQL
 - 不是业务SQL，无需优化
 - 运行时间长是正常的
 
 **示例SQL：**
 ```sql
+-- CDC存储过程
 EXEC sp_cdc_scan @maxtrans = 500
 EXEC sp_MScdc_capture_job
+
+-- CDC系统表查询（参数化查询）
+SELECT MAX(start_lsn) FROM (
+    SELECT TOP (@P0 + 1) start_lsn
+    FROM cdc.lsn_time_mapping
+    WHERE start_lsn >= @P1 AND tran_id <> 0x00
+    ORDER BY start_lsn
+) as next_lsns
 ```
 
 ---
