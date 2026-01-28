@@ -79,12 +79,11 @@ python scripts/init_database.py
 
 ### 5. 启动应用
 
-**Windows:**
 ```bash
-START_INTEGRATED_APP.bat
+python start.py
 ```
 
-**Linux/Mac:**
+或直接运行主应用：
 ```bash
 python app_new.py
 ```
@@ -95,12 +94,12 @@ python app_new.py
 
 ## 📖 详细文档
 
+- **[文档中心](docs/README.md)** - 完整文档索引
 - **[快速开始指南](QUICK_START.md)** - 5分钟快速上手
 - **[部署指南](DEPLOYMENT.md)** - 生产环境部署
-- **[采集器配置](COLLECTORS_CONFIG_GUIDE.md)** - 采集器配置和优化
-- **[系统进程过滤](SYSTEM_PROCESS_FILTERS.md)** - 过滤规则说明
-- **[最佳实践](BEST_PRACTICE_COLLECTORS.md)** - 推荐配置和实践
-- **[DBA功能指南](DBA_FEATURES_GUIDE.txt)** - 完整功能列表
+- **[采集器配置](docs/collectors-config.md)** - 采集器配置和优化
+- **[系统进程过滤](docs/system-filters.md)** - 过滤规则说明
+- **[最佳实践](docs/best-practices.md)** - 推荐配置和实践
 
 ## 🎯 核心功能
 
@@ -284,7 +283,7 @@ START_INTEGRATED_APP.bat
 2. 验证数据库权限
 3. 查看采集器日志
 
-详见：[故障排查指南](TODO_ACTION_LIST.md#故障排查)
+详见：[部署指南 - 故障排查](DEPLOYMENT.md#故障排查)
 
 ## 📦 核心依赖
 
@@ -355,11 +354,11 @@ DBUtils==3.0.3            # 数据库连接池
 - **文档**: 查看项目中的各类MD文档
 
 ### 常用文档
+- [文档中心](docs/README.md) - 完整文档索引
 - [快速开始](QUICK_START.md) - 新手入门
 - [部署指南](DEPLOYMENT.md) - 生产部署
-- [采集器配置](COLLECTORS_CONFIG_GUIDE.md) - 采集器详细配置
-- [故障排查](TODO_ACTION_LIST.md#故障排查) - 常见问题解决
-- [最佳实践](BEST_PRACTICE_COLLECTORS.md) - 推荐配置
+- [采集器配置](docs/collectors-config.md) - 采集器详细配置
+- [最佳实践](docs/best-practices.md) - 推荐配置
 
 ## 📄 许可证
 
@@ -387,7 +386,7 @@ DBUtils==3.0.3            # 数据库连接池
 
 - **代码行数**: 25,000+ lines
 - **功能模块**: 10+ modules
-- **文档数量**: 30+ documents
+- **文档数量**: 6 核心文档
 - **支持数据库**: MySQL, SQL Server
 - **监控指标**: 50+ metrics
 
