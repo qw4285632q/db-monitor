@@ -265,8 +265,17 @@
             <!-- Performance Metrics Cards -->
             <div class="card">
                 <div class="card-header">
-                    <span class="card-title">数据库性能指标</span>
-                    <button class="btn btn-primary btn-sm" onclick="loadPerformanceMetrics()">刷新</button>
+                    <span class="card-title">📊 数据库性能指标</span>
+                    <div class="filters">
+                        <div class="filter-group">
+                            <label>数据库类型</label>
+                            <select id="perfMetricsDbType" onchange="loadPerformanceMetrics()">
+                                <option value="MySQL">MySQL</option>
+                                <option value="SQL Server">SQL Server</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="loadPerformanceMetrics()">🔄 刷新</button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div id="performanceMetricsContainer">
@@ -2199,9 +2208,13 @@
         // Performance Metrics Functions
         async function loadPerformanceMetrics() {
             const container = document.getElementById('performanceMetricsContainer');
+            const dbType = document.getElementById('perfMetricsDbType').value;
+
             container.innerHTML = '<div class="loading"><div class="spinner"></div><p>加载中...</p></div>';
 
-            const result = await api('/api/performance_metrics');
+            // 根据数据库类型调用不同API
+            const apiUrl = dbType === 'SQL Server' ? '/api/sqlserver/performance_metrics' : '/api/performance_metrics';
+            const result = await api(apiUrl);
 
             if (!result.success) {
                 container.innerHTML = `<div class="alert alert-danger">加载失败: ${result.error}</div>`;
@@ -2211,50 +2224,156 @@
             const data = result.data || [];
 
             if (!data.length) {
-                container.innerHTML = '<div class="empty-state">没有可用的性能指标数据</div>';
+                container.innerHTML = `<div class="empty-state">没有可用的${dbType}性能指标数据</div>`;
                 return;
             }
 
-            // 为每个实例创建性能指标卡片
-            container.innerHTML = data.map(metrics => `
-                <div class="card" style="margin-bottom:20px;">
-                    <div class="card-header">
-                        <span class="card-title">${metrics.instance_name || metrics.db_project}</span>
-                        <small style="color:#888;">${metrics.db_ip}:${metrics.db_port}</small>
+            // 根据数据库类型渲染不同的指标
+            if (dbType === 'SQL Server') {
+                container.innerHTML = data.map(metrics => renderSQLServerMetrics(metrics)).join('');
+            } else {
+                container.innerHTML = data.map(metrics => renderMySQLMetrics(metrics)).join('');
+            }
+        }
+
+        // 渲染MySQL性能指标
+        function renderMySQLMetrics(metrics) {
+            return `
+                <div class="card" style="margin-bottom:20px; border-left: 4px solid #4CAF50;">
+                    <div class="card-header" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
+                        <div>
+                            <span class="card-title">🐬 ${metrics.instance_name || metrics.db_project}</span>
+                            <div style="font-size:12px;color:#666;margin-top:3px;">${metrics.db_ip}:${metrics.db_port}</div>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="stats-grid">
                             <div class="stat-card primary">
-                                <div class="stat-label">QPS (每秒查询数)</div>
+                                <div class="stat-label">💫 QPS</div>
                                 <div class="stat-value">${metrics.qps || 0}</div>
+                                <div class="stat-sublabel">每秒查询数</div>
                             </div>
                             <div class="stat-card success">
-                                <div class="stat-label">TPS (每秒事务数)</div>
+                                <div class="stat-label">🔄 TPS</div>
                                 <div class="stat-value">${metrics.tps || 0}</div>
+                                <div class="stat-sublabel">每秒事务数</div>
                             </div>
                             <div class="stat-card ${metrics.connection_warning ? 'danger' : 'warning'}">
-                                <div class="stat-label">连接使用率</div>
+                                <div class="stat-label">🔌 连接使用率</div>
                                 <div class="stat-value">${metrics.connection_usage || 0}%</div>
-                                <div class="stat-sublabel" style="font-size:12px;color:#888;margin-top:5px;">
-                                    ${metrics.current_connections}/${metrics.max_connections} ${metrics.connection_warning ? '⚠ 超过80%' : '✓ 正常'}
+                                <div class="stat-sublabel">
+                                    ${metrics.current_connections}/${metrics.max_connections} ${metrics.connection_warning ? '⚠️ 超过80%' : '✅ 正常'}
                                 </div>
                             </div>
                             <div class="stat-card ${metrics.cache_warning ? 'danger' : 'success'}">
-                                <div class="stat-label">缓存命中率</div>
+                                <div class="stat-label">💾 缓存命中率</div>
                                 <div class="stat-value">${metrics.cache_hit_rate || 0}%</div>
-                                <div class="stat-sublabel" style="font-size:12px;color:#888;margin-top:5px;">
-                                    ${metrics.cache_warning ? '⚠ 低于95%' : '✓ 正常'}
+                                <div class="stat-sublabel">
+                                    ${metrics.cache_warning ? '⚠️ 低于95%' : '✅ 正常'}
                                 </div>
                             </div>
                             <div class="stat-card secondary">
-                                <div class="stat-label">慢查询累计</div>
+                                <div class="stat-label">🐌 慢查询累计</div>
                                 <div class="stat-value">${metrics.slow_queries || 0}</div>
-                                <div class="stat-sublabel" style="font-size:12px;color:#888;margin-top:5px;">自启动以来</div>
+                                <div class="stat-sublabel">自启动以来</div>
                             </div>
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `;
+        }
+
+        // 渲染SQL Server性能指标
+        function renderSQLServerMetrics(metrics) {
+            const waitStatsHtml = metrics.top_waits && metrics.top_waits.length > 0 ? `
+                <div style="margin-top:15px; padding:10px; background:#f8f9fa; border-radius:4px;">
+                    <div style="font-weight:bold; margin-bottom:8px; color:#666;">⏱️ Top 5 等待事件:</div>
+                    ${metrics.top_waits.map((wait, idx) => `
+                        <div style="font-size:12px; padding:3px 0; color:#555;">
+                            ${idx + 1}. <strong>${wait.wait_type}</strong>: ${wait.wait_time_sec.toFixed(2)}秒 (${wait.waiting_tasks}次)
+                        </div>
+                    `).join('')}
+                </div>
+            ` : '';
+
+            return `
+                <div class="card" style="margin-bottom:20px; border-left: 4px solid #0078D4;">
+                    <div class="card-header" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);">
+                        <div>
+                            <span class="card-title">🗄️ ${metrics.instance_name || metrics.db_project}</span>
+                            <div style="font-size:12px;color:#666;margin-top:3px;">${metrics.db_ip}:${metrics.db_port}</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- 核心性能指标 -->
+                        <div class="stats-grid" style="margin-bottom:15px;">
+                            <div class="stat-card primary">
+                                <div class="stat-label">⚡ Batch Requests/sec</div>
+                                <div class="stat-value">${metrics.batch_requests_per_sec || 0}</div>
+                                <div class="stat-sublabel">批处理请求</div>
+                            </div>
+                            <div class="stat-card success">
+                                <div class="stat-label">🔄 TPS</div>
+                                <div class="stat-value">${metrics.tps || 0}</div>
+                                <div class="stat-sublabel">每秒事务数</div>
+                            </div>
+                            <div class="stat-card ${metrics.connection_warning ? 'danger' : 'warning'}">
+                                <div class="stat-label">🔌 连接使用率</div>
+                                <div class="stat-value">${metrics.connection_usage || 0}%</div>
+                                <div class="stat-sublabel">
+                                    ${metrics.current_connections}/${metrics.max_connections} ${metrics.connection_warning ? '⚠️ 超过80%' : '✅'}
+                                </div>
+                            </div>
+                            <div class="stat-card ${metrics.cache_warning ? 'danger' : 'success'}">
+                                <div class="stat-label">💾 Buffer Cache命中率</div>
+                                <div class="stat-value">${metrics.cache_hit_rate || 0}%</div>
+                                <div class="stat-sublabel">
+                                    ${metrics.cache_warning ? '⚠️ 低于90%' : '✅ 正常'}
+                                </div>
+                            </div>
+                            <div class="stat-card ${metrics.ple_warning ? 'danger' : 'success'}">
+                                <div class="stat-label">📄 Page Life Expectancy</div>
+                                <div class="stat-value">${metrics.page_life_expectancy || 0}</div>
+                                <div class="stat-sublabel">
+                                    ${metrics.ple_warning ? '⚠️ <300秒' : '✅ 正常'}
+                                </div>
+                            </div>
+                            <div class="stat-card secondary">
+                                <div class="stat-label">⚙️ SQL编译/sec</div>
+                                <div class="stat-value">${metrics.sql_compilations_per_sec || 0}</div>
+                                <div class="stat-sublabel">编译频率</div>
+                            </div>
+                        </div>
+
+                        <!-- 系统资源指标 -->
+                        <div class="stats-grid" style="margin-bottom:15px;">
+                            <div class="stat-card ${metrics.cpu_warning ? 'danger' : 'primary'}">
+                                <div class="stat-label">🖥️ SQL Server CPU</div>
+                                <div class="stat-value">${metrics.sql_cpu_percent || 0}%</div>
+                                <div class="stat-sublabel">
+                                    服务器总CPU: ${metrics.total_cpu_percent || 0}% ${metrics.cpu_warning ? '⚠️' : ''}
+                                </div>
+                            </div>
+                            <div class="stat-card ${metrics.memory_warning ? 'danger' : 'warning'}">
+                                <div class="stat-label">🧠 内存使用率</div>
+                                <div class="stat-value">${metrics.memory_usage_percent || 0}%</div>
+                                <div class="stat-sublabel">
+                                    可用: ${metrics.available_memory_mb || 0}MB / 总计: ${metrics.total_memory_mb || 0}MB
+                                </div>
+                            </div>
+                            <div class="stat-card ${metrics.blocking_warning ? 'danger' : 'success'}">
+                                <div class="stat-label">🚫 阻塞会话</div>
+                                <div class="stat-value">${metrics.blocked_sessions || 0}</div>
+                                <div class="stat-sublabel">
+                                    ${metrics.blocking_warning ? '⚠️ 存在阻塞' : '✅ 无阻塞'}
+                                </div>
+                            </div>
+                        </div>
+
+                        ${waitStatsHtml}
+                    </div>
+                </div>
+            `;
         }
 
         // Prometheus Functions

@@ -1386,6 +1386,212 @@ def get_performance_metrics():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/sqlserver/performance_metrics', methods=['GET'])
+def get_sqlserver_performance_metrics():
+    """获取SQL Server性能指标：Batch Requests/sec、TPS、连接数、缓存命中率等"""
+    try:
+        instance_id = request.args.get('instance_id', type=int)
+
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': '监控数据库连接失败'}), 500
+
+        # 获取SQL Server实例列表
+        with conn.cursor() as cursor:
+            if instance_id:
+                cursor.execute("""
+                    SELECT id, db_project, db_ip, db_port, db_user, db_password, db_type, instance_name
+                    FROM db_instance_info WHERE id = %s AND status = 1
+                """, (instance_id,))
+                instances = [cursor.fetchone()]
+            else:
+                cursor.execute("""
+                    SELECT id, db_project, db_ip, db_port, db_user, db_password, db_type, instance_name
+                    FROM db_instance_info WHERE status = 1 AND db_type = 'SQL Server' LIMIT 10
+                """)
+                instances = cursor.fetchall()
+
+        conn.close()
+
+        metrics_list = []
+        for instance in instances:
+            if not instance or instance['db_type'] != 'SQL Server':
+                continue
+
+            try:
+                # 连接目标SQL Server实例
+                conn_str = (
+                    f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+                    f"SERVER={instance['db_ip']},{instance['db_port']};"
+                    f"UID={instance['db_user']};"
+                    f"PWD={instance['db_password']};"
+                    f"Timeout=3;"
+                )
+                target_conn = pyodbc.connect(conn_str)
+                cursor = target_conn.cursor()
+
+                metrics = {
+                    'instance_id': instance['id'],
+                    'db_project': instance['db_project'],
+                    'db_ip': instance['db_ip'],
+                    'db_port': instance['db_port'],
+                    'instance_name': instance['instance_name'] or f"{instance['db_ip']}:{instance['db_port']}"
+                }
+
+                # 获取性能计数器
+                perf_query = """
+                SELECT
+                    counter_name,
+                    cntr_value,
+                    cntr_type
+                FROM sys.dm_os_performance_counters
+                WHERE (object_name LIKE '%General Statistics%' AND counter_name = 'User Connections')
+                   OR (object_name LIKE '%SQL Statistics%' AND counter_name IN ('Batch Requests/sec', 'SQL Compilations/sec'))
+                   OR (object_name LIKE '%Buffer Manager%' AND counter_name IN ('Buffer cache hit ratio', 'Page life expectancy', 'Buffer cache hit ratio base'))
+                   OR (object_name LIKE '%Databases%' AND counter_name = 'Transactions/sec' AND instance_name = '_Total')
+                """
+                cursor.execute(perf_query)
+                perf_counters = {row.counter_name: row.cntr_value for row in cursor.fetchall()}
+
+                # 连接数
+                metrics['current_connections'] = int(perf_counters.get('User Connections', 0))
+
+                # 获取最大连接数
+                cursor.execute("SELECT @@MAX_CONNECTIONS as max_conn")
+                max_conn_row = cursor.fetchone()
+                max_connections = max_conn_row.max_conn if max_conn_row else 32767
+                metrics['max_connections'] = max_connections
+                metrics['connection_usage'] = round(metrics['current_connections'] / max_connections * 100, 2) if max_connections > 0 else 0
+                metrics['connection_warning'] = metrics['connection_usage'] > 80
+
+                # Batch Requests/sec (类似QPS)
+                metrics['batch_requests_per_sec'] = round(float(perf_counters.get('Batch Requests/sec', 0)), 2)
+
+                # TPS
+                metrics['tps'] = round(float(perf_counters.get('Transactions/sec', 0)), 2)
+
+                # SQL编译次数/秒
+                metrics['sql_compilations_per_sec'] = round(float(perf_counters.get('SQL Compilations/sec', 0)), 2)
+
+                # Buffer Cache Hit Ratio (缓存命中率)
+                buffer_hit = float(perf_counters.get('Buffer cache hit ratio', 0))
+                buffer_hit_base = float(perf_counters.get('Buffer cache hit ratio base', 1))
+                if buffer_hit_base > 0:
+                    metrics['cache_hit_rate'] = round(buffer_hit / buffer_hit_base * 100, 2)
+                else:
+                    metrics['cache_hit_rate'] = 100
+                metrics['cache_warning'] = metrics['cache_hit_rate'] < 90
+
+                # Page Life Expectancy (页面生存期，秒)
+                metrics['page_life_expectancy'] = int(perf_counters.get('Page life expectancy', 0))
+                metrics['ple_warning'] = metrics['page_life_expectancy'] < 300  # <5分钟告警
+
+                # CPU使用率
+                cpu_query = """
+                SELECT TOP 1
+                    SQLProcessUtilization as sql_cpu,
+                    100 - SystemIdle as total_cpu
+                FROM (
+                    SELECT
+                        record.value('(./Record/@id)[1]', 'int') AS record_id,
+                        record.value('(./Record/SchedulerMonitorEvent/SystemHealth/SystemIdle)[1]', 'int') AS SystemIdle,
+                        record.value('(./Record/SchedulerMonitorEvent/SystemHealth/ProcessUtilization)[1]', 'int') AS SQLProcessUtilization,
+                        DATEADD(ms, -1 * ((SELECT ms_ticks FROM sys.dm_os_sys_info) - timestamp), GETDATE()) AS EventTime
+                    FROM (
+                        SELECT timestamp, CONVERT(xml, record) AS record
+                        FROM sys.dm_os_ring_buffers
+                        WHERE ring_buffer_type = N'RING_BUFFER_SCHEDULER_MONITOR'
+                        AND record LIKE '%<SystemHealth>%'
+                    ) AS x
+                ) AS y
+                ORDER BY record_id DESC
+                """
+                cursor.execute(cpu_query)
+                cpu_row = cursor.fetchone()
+                if cpu_row:
+                    metrics['sql_cpu_percent'] = cpu_row.sql_cpu
+                    metrics['total_cpu_percent'] = cpu_row.total_cpu
+                    metrics['cpu_warning'] = cpu_row.sql_cpu > 80
+                else:
+                    metrics['sql_cpu_percent'] = 0
+                    metrics['total_cpu_percent'] = 0
+                    metrics['cpu_warning'] = False
+
+                # 内存使用情况
+                memory_query = """
+                SELECT
+                    (total_physical_memory_kb / 1024) as total_memory_mb,
+                    (available_physical_memory_kb / 1024) as available_memory_mb,
+                    (total_physical_memory_kb - available_physical_memory_kb) * 100.0 / total_physical_memory_kb as memory_usage_percent
+                FROM sys.dm_os_sys_memory
+                """
+                cursor.execute(memory_query)
+                mem_row = cursor.fetchone()
+                if mem_row:
+                    metrics['total_memory_mb'] = int(mem_row.total_memory_mb)
+                    metrics['available_memory_mb'] = int(mem_row.available_memory_mb)
+                    metrics['memory_usage_percent'] = round(mem_row.memory_usage_percent, 2)
+                    metrics['memory_warning'] = mem_row.memory_usage_percent > 90
+                else:
+                    metrics['total_memory_mb'] = 0
+                    metrics['available_memory_mb'] = 0
+                    metrics['memory_usage_percent'] = 0
+                    metrics['memory_warning'] = False
+
+                # 等待统计（Top 5）
+                wait_query = """
+                SELECT TOP 5
+                    wait_type,
+                    wait_time_ms / 1000.0 as wait_time_sec,
+                    waiting_tasks_count
+                FROM sys.dm_os_wait_stats
+                WHERE wait_type NOT IN (
+                    'CLR_SEMAPHORE', 'LAZYWRITER_SLEEP', 'RESOURCE_QUEUE', 'SLEEP_TASK',
+                    'SLEEP_SYSTEMTASK', 'SQLTRACE_BUFFER_FLUSH', 'WAITFOR', 'LOGMGR_QUEUE',
+                    'CHECKPOINT_QUEUE', 'REQUEST_FOR_DEADLOCK_SEARCH', 'XE_TIMER_EVENT',
+                    'BROKER_TO_FLUSH', 'BROKER_TASK_STOP', 'CLR_MANUAL_EVENT',
+                    'CLR_AUTO_EVENT', 'DISPATCHER_QUEUE_SEMAPHORE', 'FT_IFTS_SCHEDULER_IDLE_WAIT',
+                    'XE_DISPATCHER_WAIT', 'XE_DISPATCHER_JOIN', 'SQLTRACE_INCREMENTAL_FLUSH_SLEEP'
+                )
+                ORDER BY wait_time_ms DESC
+                """
+                cursor.execute(wait_query)
+                wait_stats = []
+                for row in cursor.fetchall():
+                    wait_stats.append({
+                        'wait_type': row.wait_type,
+                        'wait_time_sec': round(row.wait_time_sec, 2),
+                        'waiting_tasks': row.waiting_tasks_count
+                    })
+                metrics['top_waits'] = wait_stats
+
+                # 阻塞会话数量
+                blocking_query = """
+                SELECT COUNT(DISTINCT blocked.session_id) as blocked_count
+                FROM sys.dm_exec_requests blocked
+                WHERE blocked.blocking_session_id > 0
+                """
+                cursor.execute(blocking_query)
+                blocked_row = cursor.fetchone()
+                metrics['blocked_sessions'] = blocked_row.blocked_count if blocked_row else 0
+                metrics['blocking_warning'] = metrics['blocked_sessions'] > 0
+
+                metrics_list.append(metrics)
+
+                cursor.close()
+                target_conn.close()
+
+            except Exception as e:
+                logger.error(f"获取SQL Server实例{instance['db_project']}性能指标失败: {e}")
+                continue
+
+        return jsonify({'success': True, 'data': metrics_list})
+
+    except Exception as e:
+        logger.error(f"获取SQL Server性能指标失败: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/blocking_queries', methods=['GET'])
 def get_blocking_queries():
     """获取阻塞查询（使用sys.innodb_lock_waits）"""
