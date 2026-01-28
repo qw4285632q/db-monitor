@@ -62,8 +62,8 @@ debug_*.html
 # Backup files
 *.backup
 
-# Old/legacy files
-app.py
-index.html
-config.example.py
-integrate_apis.py
+# Old/legacy files (in root directory only)
+/app.py
+/index.html
+/config.example.py
+/integrate_apis.py
