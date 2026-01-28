@@ -1,0 +1,25 @@
+{
+  "wecom": {
+    "webhook": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY_HERE",
+    "enabled": true
+  },
+  "dingtalk": {
+    "webhook": "https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN",
+    "secret": "YOUR_SECRET_KEY",
+    "enabled": false
+  },
+  "email": {
+    "host": "smtp.example.com",
+    "port": 465,
+    "user": "alert@example.com",
+    "password": "your_password",
+    "from": "alert@example.com",
+    "to": ["admin@example.com", "dba@example.com"],
+    "enabled": false
+  },
+  "alert_rules": {
+    "slow_sql_threshold_minutes": 10,
+    "deadlock_always_alert": true,
+    "alert_interval_seconds": 300
+  }
+}

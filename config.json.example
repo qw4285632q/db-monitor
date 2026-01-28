@@ -1,0 +1,44 @@
+{
+    "database": {
+        "host": "your-monitor-db-host",
+        "port": 3306,
+        "user": "your-username",
+        "password": "your-password",
+        "database": "db_monitor",
+        "charset": "utf8mb4"
+    },
+    "app": {
+        "auto_refresh_interval": 30,
+        "warning_threshold": 5,
+        "critical_threshold": 10,
+        "default_hours": 24,
+        "default_page_size": 20
+    },
+    "collectors": {
+        "mysql": {
+            "enabled": true,
+            "interval": 60,
+            "threshold": 5,
+            "description": "MySQL Performance Schema采集器"
+        },
+        "sqlserver": {
+            "enabled": true,
+            "interval": 60,
+            "threshold": 5,
+            "auto_enable_querystore": false,
+            "description": "SQL Server Query Store采集器"
+        }
+    },
+    "prometheus": {
+        "enabled": true,
+        "url": "http://your-prometheus-url:9090",
+        "timeout": 5,
+        "scrape_interval": "15s"
+    },
+    "exporter_mapping": {
+        "192.168.x.x": "http://your-exporter-host:port"
+    },
+    "sqlserver_exporter_mapping": {
+        "192.168.x.x": "http://your-sqlserver-exporter-host:port"
+    }
+}

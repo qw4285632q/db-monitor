@@ -1,0 +1,69 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config files with sensitive data (keep template only)
+config.json
+alert_config.json
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Screenshots and test outputs
+*.png
+*.jpg
+*.jpeg
+test_page_loading.py
+page_screenshot.png
+
+# Temporary files
+*.tmp
+*.bak
+*.cache
+
+# Output files
+*.output
+.claude/
+
+# Test files
+test_*.py
+test_*.ps1
+test_*.html
+test_*.js
+debug_*.py
+debug_*.html
+
+# Backup files
+*.backup
+
+# Old/legacy files
+app.py
+index.html
+config.example.py
+integrate_apis.py
