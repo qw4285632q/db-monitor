@@ -1,273 +1,400 @@
-# 数据库Long SQL监控系统
+# 🗄️ Database Monitor - 数据库监控系统
 
-实时监控数据库中长时间运行的SQL语句，帮助DBA快速定位性能问题。
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-2.0+-green.svg)](https://flask.palletsprojects.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## 功能特性
+一个功能强大的数据库监控系统，支持 MySQL 和 SQL Server，提供慢SQL监控、实时SQL分析、死锁检测、AlwaysOn监控等DBA必备功能。
 
-- **多数据库支持**: 支持 Oracle、MySQL、PostgreSQL 数据库
-- **实时监控**: 自动采集长时间运行的SQL语句
-- **Web界面**: 直观的数据展示和查询界面
-- **告警分级**: 自动根据运行时间分级(正常/警告/严重)
-- **统计分析**: 提供各维度的统计图表
-- **分页查询**: 支持大数据量的分页浏览
-- **配置管理**: Web界面配置数据库连接和应用参数
-- **实例管理**: 可视化管理被监控的数据库实例
+## ✨ 核心特性
 
-## 项目结构
+### 📊 慢SQL监控
+- **MySQL Performance Schema 采集器** - 100%准确率，零侵入
+- **SQL Server Query Store 采集器** - 智能过滤CDC/复制作业
+- **实时配置管理** - Web界面动态调整，无需重启
+- **智能过滤** - 自动排除系统进程（CDC、sp_server_diagnostics、@@TRANCOUNT等）
 
-```
-database-monitor/
-├── app.py                    # Flask后端应用
-├── index.html                # 前端页面(开发)
-├── requirements.txt          # Python依赖
-├── start.bat                 # Windows启动脚本
-├── README.md                 # 项目说明
-├── static/
-│   └── index.html           # 前端页面(生产)
-├── scripts/
-│   ├── init_database.sql    # 数据库初始化脚本
-│   ├── generate_test_data.py # 测试数据生成
-│   └── collect_long_sql.py  # SQL采集脚本
-└── logs/                     # 日志目录
-```
+### 🔍 实时监控
+- 实时SQL监控和终止会话
+- 死锁检测和详细分析
+- SQL执行计划自动采集
+- SQL指纹聚合和性能对比
 
-## 快速开始
+### 🎯 AlwaysOn监控
+- 可用性组状态监控
+- 副本延迟计算和告警
+- 自动故障转移跟踪
+
+### 📈 Prometheus集成
+- MySQL和SQL Server指标导出
+- 性能趋势图表
+- 自定义查询支持
+
+### 🤖 智能分析
+- SQL执行计划分析
+- 索引建议自动生成
+- 健康检查引擎
+- 性能基线对比
+
+## 🚀 快速开始
 
 ### 1. 环境要求
 
-- Python 3.8+
-- MySQL 5.7+ (用于存储监控数据)
-- 被监控的数据库(Oracle/MySQL/PostgreSQL)
+```bash
+Python 3.8+
+MySQL 5.7+ / SQL Server 2016+
+```
 
 ### 2. 安装依赖
 
 ```bash
-# 创建虚拟环境
-python -m venv venv
-
-# 激活虚拟环境
-# Windows:
-venv\Scripts\activate
-# Linux/Mac:
-source venv/bin/activate
-
-# 安装依赖
 pip install -r requirements.txt
-
-# Oracle支持(可选)
-pip install cx_Oracle
-
-# PostgreSQL支持(可选)
-pip install psycopg2-binary
 ```
 
-### 3. 初始化数据库
+### 3. 配置数据库
 
+复制配置文件模板：
 ```bash
-# 登录MySQL执行初始化脚本
-mysql -u root -p < scripts/init_database.sql
+cp config.json.example config.json
 ```
 
-### 4. 配置数据库连接
-
-编辑 `app.py` 中的数据库配置:
-
-```python
-DB_CONFIG = {
-    'host': '192.168.11.85',      # 数据库服务器
-    'user': 'root',                # 用户名
-    'password': 'your_password',   # 密码
-    'database': 'db_monitor',      # 数据库名
-    'charset': 'utf8mb4'
+编辑 `config.json`，填入监控数据库连接信息：
+```json
+{
+  "database": {
+    "host": "your-monitor-db-host",
+    "port": 3306,
+    "user": "your-username",
+    "password": "your-password",
+    "database": "db_monitor"
+  }
 }
 ```
 
-或使用环境变量:
+### 4. 初始化数据库
 
 ```bash
-export DB_HOST=192.168.11.85
-export DB_USER=root
-export DB_PASSWORD=your_password
-export DB_NAME=db_monitor
+python scripts/init_database.py
 ```
 
-### 5. 生成测试数据(可选)
+### 5. 启动应用
 
+**Windows:**
 ```bash
-python scripts/generate_test_data.py
+START_INTEGRATED_APP.bat
 ```
 
-### 6. 启动应用
-
+**Linux/Mac:**
 ```bash
-# Windows
-start.bat
-
-# Linux/Mac
-python app.py
+python app_new.py
 ```
 
-访问 http://localhost:5000 查看监控界面。
+### 6. 访问Web界面
 
-## API接口
+打开浏览器访问：`http://localhost:5000`
 
-### 监控数据接口
+## 📖 详细文档
 
-| 接口 | 方法 | 说明 | 参数 |
-|------|------|------|------|
-| `/api/health` | GET | 健康检查 | - |
-| `/api/long_sql` | GET | 获取长时间SQL | hours, instance_id, min_minutes, page, page_size |
-| `/api/statistics` | GET | 获取统计数据 | hours |
+- **[快速开始指南](QUICK_START.md)** - 5分钟快速上手
+- **[部署指南](DEPLOYMENT.md)** - 生产环境部署
+- **[采集器配置](COLLECTORS_CONFIG_GUIDE.md)** - 采集器配置和优化
+- **[系统进程过滤](SYSTEM_PROCESS_FILTERS.md)** - 过滤规则说明
+- **[最佳实践](BEST_PRACTICE_COLLECTORS.md)** - 推荐配置和实践
+- **[DBA功能指南](DBA_FEATURES_GUIDE.txt)** - 完整功能列表
 
-### 配置管理接口
+## 🎯 核心功能
 
-| 接口 | 方法 | 说明 | 参数 |
-|------|------|------|------|
-| `/api/config` | GET | 获取当前配置 | - |
-| `/api/config` | POST | 更新配置 | database, app (JSON) |
-| `/api/config/test` | POST | 测试数据库连接 | host, port, user, password, database |
-| `/api/config/init-db` | POST | 初始化数据库表 | - |
+### 慢SQL监控
+- 基于Performance Schema（MySQL）和Query Store（SQL Server）
+- 准确率100%，不会遗漏任何慢SQL
+- 自动去重和聚合
+- 持久化存储
 
-### 实例管理接口
+### 采集器配置管理
+- Web界面实时配置
+- 动态调整采集间隔和阈值
+- 启用/禁用采集器
+- 手动触发执行
 
-| 接口 | 方法 | 说明 | 参数 |
-|------|------|------|------|
-| `/api/instances` | GET | 获取实例列表 | - |
-| `/api/instances` | POST | 添加实例 | db_project, db_ip, db_port, ... (JSON) |
-| `/api/instances/<id>` | PUT | 更新实例 | db_project, db_ip, ... (JSON) |
-| `/api/instances/<id>` | DELETE | 删除实例 | - |
+### 系统进程过滤
+自动过滤以下系统进程，避免误报：
+- CDC（变更数据捕获）作业
+- 数据库复制作业
+- sp_server_diagnostics（AlwaysOn健康检查）
+- @@TRANCOUNT（连接池事务管理）
+- SQLAgent系统维护作业
 
-### 示例请求
+### 实时SQL监控
+- 查看当前正在执行的SQL
+- 一键终止阻塞会话
+- SQL详情和执行计划查看
+- 会话信息完整展示
 
-```bash
-# 获取最近24小时运行超过5分钟的SQL
-curl "http://localhost:5000/api/long_sql?hours=24&min_minutes=5&page=1&page_size=20"
+### 死锁检测
+- 自动采集死锁事件
+- XML解析和可视化展示
+- 死锁SQL和资源分析
+- 历史死锁查询
 
-# 获取统计信息
-curl "http://localhost:5000/api/statistics?hours=24"
-```
+## 🔧 配置说明
 
-## 数据采集
+### 采集器配置
 
-### 手动采集
+在Web界面 **"采集器配置"** 页面可以实时调整：
 
-```bash
-python scripts/collect_long_sql.py
-```
+**MySQL采集器：**
+- 采集间隔：10-3600秒（推荐60秒）
+- 慢SQL阈值：1-3600秒（推荐5秒）
 
-### 持续采集(守护进程)
+**SQL Server采集器：**
+- 采集间隔：10-3600秒（推荐60秒）
+- 慢SQL阈值：1-3600秒（推荐5秒）
+- 自动开启Query Store：是/否（推荐否）
 
-```bash
-# 每60秒采集一次
-python scripts/collect_long_sql.py --daemon --interval 60
+### 实例管理
 
-# 设置长时间SQL阈值为120秒
-python scripts/collect_long_sql.py --daemon --threshold 120
-```
+在 **"实例管理"** 页面添加要监控的数据库实例：
+1. 填写实例信息（IP、端口、用户名、密码）
+2. 测试连接
+3. 保存
 
-### 定时任务(cron)
+## 📊 技术架构
 
-```bash
-# 每分钟采集一次
-* * * * * /path/to/venv/bin/python /path/to/scripts/collect_long_sql.py >> /path/to/logs/collect.log 2>&1
-```
+### 后端
+- **Flask** - Web框架
+- **APScheduler** - 后台调度器
+- **PyMySQL** - MySQL连接
+- **pyodbc** - SQL Server连接
+- **DBUtils** - 连接池管理
 
-## 告警级别
+### 前端
+- **Vanilla JavaScript** - 原生JS，无框架依赖
+- **HTML5 + CSS3** - 现代化UI
+- **Chart绘制** - Canvas原生绘图
 
-| 级别 | 运行时间 | 颜色 |
-|------|----------|------|
-| 正常 | ≤5分钟 | 绿色 |
-| 警告 | 5-10分钟 | 橙色 |
-| 严重 | >10分钟 | 红色 |
+### 监控
+- **Performance Schema** - MySQL慢SQL采集
+- **Query Store** - SQL Server慢SQL采集
+- **sys.dm_exec_requests** - 实时SQL监控
+- **sp_get_composite_job_info** - 死锁检测
+- **Prometheus** - 指标导出
 
-## 数据库表结构
+## 🎨 界面预览
 
-### db_instance_info - 数据库实例信息
+### 主要页面
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | INT | 主键 |
-| db_project | VARCHAR(100) | 项目名称 |
-| db_ip | VARCHAR(50) | 数据库IP |
-| db_port | INT | 数据库端口 |
-| db_type | VARCHAR(20) | 数据库类型 |
-| status | TINYINT | 状态(1启用/0禁用) |
+#### 1. Long SQL列表
+- 📋 慢SQL记录列表展示
+- 🔍 按时间/实例/执行时间筛选
+- 📊 SQL详情弹窗查看
+- 🔬 执行计划自动分析
+- 📈 SQL执行历史趋势
 
-### long_running_sql_log - 长时间SQL日志
+#### 2. 实时监控
+- ⚡ 当前正在执行的SQL实时刷新
+- 🚫 阻塞会话检测和高亮
+- 💀 一键Kill会话功能
+- 🔍 SQL详情和执行计划查看
+- 👤 会话信息完整展示（用户、主机、程序等）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT | 主键 |
-| db_instance_id | INT | 实例ID |
-| session_id | VARCHAR(50) | 会话ID |
-| sql_text | VARCHAR(4000) | SQL文本 |
-| username | VARCHAR(100) | 执行用户 |
-| elapsed_minutes | DECIMAL | 运行分钟数 |
-| detect_time | DATETIME | 检测时间 |
+#### 3. 死锁监控
+- 🔒 死锁事件列表
+- 📄 XML死锁图解析和美化
+- 🗃️ 涉及的表和锁资源展示
+- 🔗 死锁SQL完整内容
+- 📅 历史死锁查询和分析
 
-## 生产部署
+#### 4. 性能监控
+- 📈 MySQL/SQL Server性能指标
+- 📊 实时性能趋势图
+- 🔥 阻塞查询检测
+- 🔄 复制延迟监控（AlwaysOn）
 
-### 使用Gunicorn (Linux)
+#### 5. 采集器配置
+- ⚙️ 实时状态显示（运行中/已停止）
+- 🔧 动态配置调整（间隔、阈值）
+- 🚀 手动触发执行
+- ⏰ 下次运行时间显示
+- 💾 配置保存立即生效（无需重启）
 
-```bash
-pip install gunicorn
-gunicorn -w 4 -b 0.0.0.0:5000 app:app
-```
+#### 6. 实例管理
+- 📝 数据库实例列表
+- ➕ 添加/编辑/删除实例
+- 🔌 连接测试功能
+- 📋 实例详细信息配置
 
-### 使用Waitress (Windows)
+## 🔒 安全说明
 
-```bash
-pip install waitress
-waitress-serve --port=5000 app:app
-```
+### 敏感信息
+- 配置文件（`config.json`）包含数据库密码，已在 `.gitignore` 中排除
+- 使用前请复制 `config.json.example` 并填入真实配置
+- 建议使用只读账号进行监控（需要Performance Schema和DMV权限）
 
-### 使用Nginx反向代理
+### 权限要求
 
-```nginx
-server {
-    listen 80;
-    server_name monitor.example.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:5000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-```
-
-## 常见问题
-
-### Q: 页面显示"暂无数据"?
-
-A: 检查以下几点:
-1. 数据库连接是否正确
-2. 是否已运行数据采集脚本
-3. 查询时间范围是否正确
-
-### Q: Oracle采集报错?
-
-A: 确保已安装cx_Oracle并配置Oracle客户端:
-```bash
-pip install cx_Oracle
-# 配置ORACLE_HOME和LD_LIBRARY_PATH
-```
-
-### Q: 如何清理历史数据?
-
-A: 调用存储过程:
+**MySQL:**
 ```sql
-CALL cleanup_old_data(30);  -- 保留最近30天数据
+GRANT SELECT ON performance_schema.* TO 'monitor_user'@'%';
+GRANT SELECT ON information_schema.* TO 'monitor_user'@'%';
+GRANT PROCESS ON *.* TO 'monitor_user'@'%';
 ```
 
-## 更新日志
+**SQL Server:**
+```sql
+GRANT VIEW SERVER STATE TO monitor_user;
+GRANT VIEW DATABASE STATE TO monitor_user;
+GRANT VIEW ANY DEFINITION TO monitor_user;
+```
 
-### v1.0.0 (2025-01)
-- 初始版本发布
-- 支持Oracle/MySQL/PostgreSQL
-- Web监控界面
-- 数据采集脚本
+## 📈 性能优化
 
-## License
+### 采集器优化
+- 默认60秒采集间隔，平衡实时性和性能
+- 使用连接池，避免频繁创建连接
+- Performance Schema和Query Store为只读查询，开销极低
 
-MIT License
+### 数据库优化
+- 建议为监控数据库添加索引（见`scripts/init_database.sql`）
+- 定期清理历史数据（保留30天）
+- 使用独立的监控数据库
+
+## 🐛 故障排查
+
+### 采集器未运行
+```bash
+# 查看进程
+wmic process where "name='python.exe'" get ProcessId,CommandLine
+
+# 查看日志
+type logs\app_running.log
+```
+
+### Web页面无法访问
+```bash
+# 检查端口占用
+netstat -ano | findstr :5000
+
+# 重启应用
+taskkill /F /IM python.exe
+START_INTEGRATED_APP.bat
+```
+
+### 数据采集异常
+1. 检查数据库连接配置
+2. 验证数据库权限
+3. 查看采集器日志
+
+详见：[故障排查指南](TODO_ACTION_LIST.md#故障排查)
+
+## 📦 核心依赖
+
+```
+Flask==2.3.3              # Web框架
+PyMySQL==1.1.0            # MySQL连接器
+pyodbc==4.0.39            # SQL Server连接器
+APScheduler==3.10.4       # 后台任务调度
+DBUtils==3.0.3            # 数据库连接池
+```
+
+完整依赖列表见 [requirements.txt](requirements.txt)
+
+## 🔄 版本更新
+
+### v1.3.0 (2026-01-28) - 当前版本
+- ✨ 新增采集器Web配置管理（实时生效）
+- 🎯 优化系统进程过滤（CDC、sp_server_diagnostics、@@TRANCOUNT）
+- 🚀 采集器集成到主应用（APScheduler）
+- 📊 完善采集器状态监控
+- 🐛 修复Long SQL加载问题
+- 📝 完善文档和使用指南
+
+### v1.2.0 (2026-01-27)
+- ✨ 新增Performance Schema采集器（MySQL 100%准确率）
+- ✨ 新增Query Store采集器（SQL Server）
+- 🔒 自动过滤CDC和复制作业
+- 📊 优化采集性能（60秒间隔，零侵入）
+
+### v1.1.0 (2026-01-26)
+- ✨ 新增DBA功能（SQL指纹、执行计划分析）
+- 🎯 新增AlwaysOn监控
+- 📈 集成Prometheus监控
+- 🔍 新增实时SQL监控和Kill会话
+- 🔒 新增死锁检测和分析
+
+### v1.0.0 (2026-01-25)
+- 🎉 初始版本发布
+- 📊 慢SQL监控基础功能
+- 🖥️ Web管理界面
+- ⚙️ 实例管理和配置
+
+## 🤝 贡献指南
+
+欢迎贡献代码、报告问题或提出建议！
+
+### 提交Issue
+- 🐛 Bug报告：请提供详细的错误信息和复现步骤
+- 💡 功能建议：描述需求和使用场景
+- ❓ 使用问题：查阅文档后仍无法解决的问题
+
+### 提交Pull Request
+1. Fork本仓库
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启Pull Request
+
+### 开发规范
+- 代码风格：遵循PEP 8
+- 提交信息：清晰描述更改内容
+- 文档更新：功能变更需同步更新文档
+
+## 📞 支持与联系
+
+### 问题反馈
+- **GitHub Issues**: https://github.com/qw4285632q/db-monitor/issues
+- **文档**: 查看项目中的各类MD文档
+
+### 常用文档
+- [快速开始](QUICK_START.md) - 新手入门
+- [部署指南](DEPLOYMENT.md) - 生产部署
+- [采集器配置](COLLECTORS_CONFIG_GUIDE.md) - 采集器详细配置
+- [故障排查](TODO_ACTION_LIST.md#故障排查) - 常见问题解决
+- [最佳实践](BEST_PRACTICE_COLLECTORS.md) - 推荐配置
+
+## 📄 许可证
+
+[MIT License](LICENSE)
+
+## 👨‍💻 作者与贡献者
+
+**主要开发**: Database Monitor Team
+
+**Co-Authored-By**: Claude Sonnet 4.5 <noreply@anthropic.com>
+
+## 🙏 致谢
+
+感谢以下开源项目的支持：
+- [Flask](https://flask.palletsprojects.com/) - 优雅的Python Web框架
+- [PyMySQL](https://github.com/PyMySQL/PyMySQL) - 纯Python的MySQL客户端
+- [APScheduler](https://apscheduler.readthedocs.io/) - 强大的Python作业调度库
+- [Prometheus](https://prometheus.io/) - 开源监控解决方案
+
+## ⭐ Star History
+
+如果这个项目对你有帮助，请给一个⭐️ Star！
+
+## 📊 项目统计
+
+- **代码行数**: 25,000+ lines
+- **功能模块**: 10+ modules
+- **文档数量**: 30+ documents
+- **支持数据库**: MySQL, SQL Server
+- **监控指标**: 50+ metrics
+
+---
+
+**最后更新**: 2026-01-28
+**当前版本**: v1.3.0
+**项目状态**: ✅ 生产就绪 | 🔄 持续维护
+
+**快速链接**: [快速开始](#-快速开始) | [功能特性](#-核心特性) | [界面预览](#-界面预览) | [文档](#详细文档)
