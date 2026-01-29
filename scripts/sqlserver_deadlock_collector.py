@@ -36,10 +36,11 @@ class SQLServerDeadlockCollector:
     def connect_sqlserver(self) -> pyodbc.Connection:
         """连接SQL Server"""
         conn_str = (
-            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+            f"DRIVER={{ODBC Driver 18 for SQL Server}};"
             f"SERVER={self.host},{self.port};"
             f"UID={self.user};"
             f"PWD={self.password};"
+            f"TrustServerCertificate=yes;"
             f"Timeout=30;"
         )
         return pyodbc.connect(conn_str)

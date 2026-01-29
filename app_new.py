@@ -1423,10 +1423,11 @@ def get_sqlserver_performance_metrics():
             try:
                 # 连接目标SQL Server实例
                 conn_str = (
-                    f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+                    f"DRIVER={{ODBC Driver 18 for SQL Server}};"
                     f"SERVER={instance['db_ip']},{instance['db_port']};"
                     f"UID={instance['db_user']};"
                     f"PWD={instance['db_password']};"
+                    f"TrustServerCertificate=yes;"
                     f"Timeout=3;"
                 )
                 target_conn = pyodbc.connect(conn_str)
