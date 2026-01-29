@@ -1408,7 +1408,7 @@ def get_sqlserver_performance_metrics():
             else:
                 cursor.execute("""
                     SELECT id, db_project, db_ip, db_port, db_user, db_password, db_type, instance_name
-                    FROM db_instance_info WHERE status = 1 AND db_type = 'SQL Server' LIMIT 10
+                    FROM db_instance_info WHERE status = 1 AND db_type IN ('SQL Server', 'SQLServer') LIMIT 10
                 """)
                 instances = cursor.fetchall()
 
@@ -1416,7 +1416,7 @@ def get_sqlserver_performance_metrics():
 
         metrics_list = []
         for instance in instances:
-            if not instance or instance['db_type'] != 'SQL Server':
+            if not instance or instance['db_type'] not in ('SQL Server', 'SQLServer'):
                 continue
 
             try:
