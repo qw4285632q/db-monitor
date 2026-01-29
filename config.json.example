@@ -27,6 +27,11 @@
             "threshold": 5,
             "auto_enable_querystore": false,
             "description": "SQL Server Query Store采集器"
+        },
+        "deadlock": {
+            "enabled": true,
+            "interval": 300,
+            "description": "SQL Server死锁检测器（通过Extended Events）"
         }
     },
     "prometheus": {

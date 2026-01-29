@@ -1499,10 +1499,10 @@
                 }
 
                 tbody.innerHTML = data.map((row, idx) => {
-                    const minutes = parseFloat(row.elapsed_minutes) || 0;
+                    const seconds = parseFloat(row.elapsed_seconds) || 0;
                     let badgeClass = 'badge-success';
-                    if (minutes > appConfig.critical_threshold) badgeClass = 'badge-danger';
-                    else if (minutes > appConfig.warning_threshold) badgeClass = 'badge-warning';
+                    if (seconds > appConfig.critical_threshold) badgeClass = 'badge-danger';
+                    else if (seconds > appConfig.warning_threshold) badgeClass = 'badge-warning';
 
                     const sqlText = row.sql_text || '';
                     const sqlPreview = sqlText.substring(0, 150) + (sqlText.length > 150 ? '...' : '');
@@ -1512,7 +1512,7 @@
                         <td>${row.detect_time || '-'}</td>
                         <td>${row.db_project || '-'}<br><small style="color:#888">${row.db_ip || ''}:${row.db_port || ''}</small></td>
                         <td>${row.username || '-'}</td>
-                        <td><span class="badge ${badgeClass}">${minutes.toFixed(2)} 分钟</span></td>
+                        <td><span class="badge ${badgeClass}">${seconds.toFixed(2)} 秒</span></td>
                         <td>${row.status || '-'}</td>
                         <td>
                             <code style="font-size:11px;cursor:pointer;display:block;max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
@@ -1573,7 +1573,7 @@
 
                 // 基本信息
                 document.getElementById('modalDetectTime').textContent = data.detect_time || '-';
-                document.getElementById('modalDuration').textContent = (parseFloat(data.elapsed_minutes) || 0).toFixed(2) + ' 分钟';
+                document.getElementById('modalDuration').textContent = (parseFloat(data.elapsed_seconds) || 0).toFixed(2) + ' 秒';
                 document.getElementById('modalInstance').textContent = `${data.db_project || '-'} (${data.db_ip || ''}:${data.db_port || ''})`;
                 document.getElementById('modalDbType').textContent = data.db_type || '-';
                 document.getElementById('modalUser').textContent = data.username || '-';

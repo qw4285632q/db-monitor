@@ -1,0 +1,65 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+venv
+.venv
+env
+.env
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Config files with sensitive data
+config.json
+alert_config.json
+
+# Test files
+test_*.py
+debug_*.py
+*_test.py
+*.test.js
+*.test.py
+
+# Documentation (not needed in container)
+*.md
+docs/
+
+# Temporary files
+*.tmp
+*.cache
+*.bak
+*.backup
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+build.sh
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+targets.json
+prometheus.yml

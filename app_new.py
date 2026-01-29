@@ -11,6 +11,7 @@ import time
 from scripts.prometheus_client import PrometheusClient
 from scripts.sql_fingerprint import SQLFingerprint
 from scripts.sql_explain_analyzer import SQLExplainAnalyzer
+from scripts.sqlserver_deadlock_collector import collect_all_sqlserver_deadlocks
 from apscheduler.schedulers.background import BackgroundScheduler
 import atexit
 
@@ -2971,6 +2972,24 @@ def run_sqlserver_collector():
         logger.error(f"SQL Server采集器异常: {e}")
 
 
+def run_deadlock_collector():
+    """SQL Server死锁检测器"""
+    try:
+        config = load_config()
+        deadlock_config = config.get('collectors', {}).get('deadlock', {})
+
+        if not deadlock_config.get('enabled', True):
+            logger.debug("死锁检测器已禁用，跳过本次检测")
+            return
+
+        logger.info("开始SQL Server死锁检测...")
+        collect_all_sqlserver_deadlocks(config['database'])
+        logger.info("SQL Server死锁检测完成")
+
+    except Exception as e:
+        logger.error(f"死锁检测器异常: {e}")
+
+
 # 创建后台调度器
 scheduler = BackgroundScheduler()
 
@@ -2992,6 +3011,13 @@ def init_scheduler():
         scheduler.add_job(func=run_sqlserver_collector, trigger="interval", seconds=interval,
                          id="sqlserver_collector", replace_existing=True)
         logger.info(f"SQL Server采集器已启动，间隔: {interval}秒")
+
+    deadlock_config = collectors_config.get('deadlock', {})
+    if deadlock_config.get('enabled', True):
+        interval = deadlock_config.get('interval', 300)  # 默认5分钟
+        scheduler.add_job(func=run_deadlock_collector, trigger="interval", seconds=interval,
+                         id="deadlock_collector", replace_existing=True)
+        logger.info(f"死锁检测器已启动，间隔: {interval}秒")
 
 def update_collector_schedule(collector_type, enabled, interval):
     """动态更新采集器调度"""

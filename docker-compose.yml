@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  db-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: harbor.uzhicai.com/midtool/db-monitor:latest
+    container_name: db-monitor
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      # Mount config file (must exist before starting)
+      - ./config.json:/app/config.json:ro
+      # Optional: mount alert config if using alerts
+      # - ./alert_config.json:/app/alert_config.json:ro
+      # Mount logs directory
+      - ./logs:/app/logs
+    environment:
+      - TZ=Asia/Shanghai
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - db-monitor-net
+
+networks:
+  db-monitor-net:
+    driver: bridge
